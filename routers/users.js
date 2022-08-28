@@ -131,15 +131,116 @@ router.delete("/:id", (req, res) => {
         });
     }
 
-    const index = users.indexOf(user);
-    users.splice(index, 1);
+    if (user.issuedBook) {
+
+        const getDateInDays = (data = "") => {
+            let date;
+            if (data === "") {
+                date = new Date();
+            } else {
+                date = new Date(data);
+            }
+            let days = Math.floor(date / (1000 * 60 * 60 * 24)); //1000 is for milliseconds
+            return days;
+        };
+
+        let returnDate = getDateInDays(user.returnDate);
+
+        let currentDate = getDateInDays();
+
+        const data = {
+            ...user,
+            fine: returnDate < currentDate ? 100
+                : 0,
+        }
+
+        return res.status(201).json({
+            Success: false,
+            Message: "User can't be deleted untill user have issued books and fine",
+            Data: data,
+        })
+    } else {
+        const index = users.indexOf(user);
+        users.splice(index, 1);
+
+        return res.status(200).json({
+            Success: true,
+            Message: "user Deleted",
+            DeletedUser: user.id,
+            Data: users,
+        });
+    }
+});
+
+/**
+ * Route: /users/subscription-details/:id
+ * Method: GET
+ * Description: Get all user subscription details
+ * Access: Public
+ * Parameters:id 
+ */
+
+router.get("/subscription-details/:id", (req, res) => {
+    const { id } = req.params;
+
+    const user = users.find((each) => each.id === id);
+
+    if (!user) {
+        return res.status(404).json({
+            Success: false,
+            Message: "user not found",
+        });
+    }
+    // called from 190 // data comes from arguement
+    const getDateInDays = (data = "") => {
+        let date;
+        if (data === "") {
+            date = new Date();
+        } else {
+            date = new Date(data);
+        }
+        let days = Math.floor(date / (1000 * 60 * 60 * 24)); //1000 is for milliseconds
+        return days;
+    };
+
+    const subscriptionType = (date) => {
+        if (user.subscriptionType === "Basic") {
+            date = date + 90;
+        } else if (user.subscriptionType === "Standard") {
+            date = date + 180;
+        } else if (user.subscriptionType === "Premium") {
+            date = date + 365;
+        }
+        return date;
+    };
+
+    //Subscription expiration calculation
+    // January 1, 1970, UTC. // milliseconds
+
+    let returnDate = getDateInDays(user.returnDate);
+
+    let currentDate = getDateInDays();
+
+    let subscriptionDate = getDateInDays(user.subscriptionDate);
+
+    let subscriptionExpiration = subscriptionType(subscriptionDate);
+
+    const data = {
+        ...user,
+        subscriptionExpired: subscriptionExpiration < subscriptionDate,
+        daysLeftForExpiration:
+            subscriptionExpiration <= currentDate ? 0 : subscriptionExpiration - currentDate,
+        fine: returnDate < currentDate ?
+            subscriptionExpiration <= currentDate
+                ? 200
+                : 100
+            : 0,
+    }
 
     return res.status(200).json({
         Success: true,
-        Message: "user Deleted",
-        DeletedUser: user.id,
-        Data: users,
-    });
+        data: data,
+    })
 });
 
 module.exports = router;
