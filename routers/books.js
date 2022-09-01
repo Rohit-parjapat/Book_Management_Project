@@ -1,8 +1,11 @@
 const express = require('express');
-const router = express.Router();
 
 const { books } = require('../data/books.json');
 const { users } = require('../data/users.json');
+
+const { getAllBooks, getBookById, getAllIssuedBooks } = require('../Controllers/books-Controller');
+
+const router = express.Router();
 
 /**
  * Route: /books
@@ -12,12 +15,7 @@ const { users } = require('../data/users.json');
  * Parameters: none
  */
 
-router.get("/", (req, res) => {
-    res.status(200).json({
-        Success: true,
-        Data: books,
-    });
-});
+router.get("/", getAllBooks);
 
 /**
  * Route: /books/:id
@@ -27,20 +25,7 @@ router.get("/", (req, res) => {
  * Parameters: id
  */
 
-router.get("/:id", (req, res) => {
-    const { id } = req.params;
-    const book = books.find((each) => each.id === id);
-    if (!book) {
-        return res.status(404).json({
-            Success: false,
-            Message: "book not found"
-        });
-    }
-    res.status(200).json({
-        Success: true,
-        Data: book,
-    });
-});
+router.get("/:id", getBookById);
 
 /**
  * Route: /books/issued/by-users
@@ -50,36 +35,7 @@ router.get("/:id", (req, res) => {
  * Parameters: none
  */
 
-router.get("/issued/by-users", (req, res) => {
-    const usersWithIssuedBooks = users.filter((each) => {
-        if (each.issuedBook) return each;
-    });
-
-    const issuedBooks = [];
-
-    usersWithIssuedBooks.forEach((each) => {
-        const book = books.find((book) => book.id === each.issuedBook);
-
-        book.issuedBy = each.name;
-        book.issuedDate = each.issuedDate;
-        book.returnDate = each.returnDate;
-
-        issuedBooks.push(book);
-    });
-
-    if (issuedBooks.length === 0) {
-        return res.status(404).json({
-            Success: false,
-            Message: "No books Issued yet",
-        });
-    }
-
-    return res.status(200).json({
-        Success: true,
-        Message: "Issued Books List",
-        Data: issuedBooks,
-    })
-});
+router.get("/issued/by-users", getAllIssuedBooks);
 
 /**
  * Route: /books
