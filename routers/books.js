@@ -1,9 +1,16 @@
-const express = require('express');
+const express = require("express");
 
-const { books } = require('../data/books.json');
-const { users } = require('../data/users.json');
+const { books } = require("../data/books.json");
+const { users } = require("../data/users.json");
 
-const { getAllBooks, getBookById, getAllIssuedBooks } = require('../Controllers/books-Controller');
+const {
+  getAllBooks,
+  getBookById,
+  getAllIssuedBooks,
+  addNewBook,
+  updateBookById,
+  getIssuedBookWithFine,
+} = require("../Controllers/books-Controller");
 
 const router = express.Router();
 
@@ -45,32 +52,7 @@ router.get("/issued/by-users", getAllIssuedBooks);
  * Parameters: none
  */
 
-router.post("/", (req, res) => {
-    const { data } = req.body;
-
-    if (!data) {
-        return res.status(404).json({
-            Success: false,
-            Message: "No data send by user",
-        });
-    }
-
-    const book = books.find((each) => each.id === data.id);
-    if (book) {
-        return res.status(202).json({
-            Success: false,
-            Message: "Book with specified Id already exist",
-        });
-    }
-
-    const allBooks = [...books, data];
-
-    return res.status(200).json({
-        Success: true,
-        Message: "New book added successfully",
-        Data: allBooks,
-    });
-})
+router.post("/", addNewBook);
 
 /**
  * Route: /books/:id
@@ -81,32 +63,7 @@ router.post("/", (req, res) => {
  * data : id, name, etc..
  */
 
-router.put("/:id", (req, res) => {
-    const { id } = req.params;
-    const { data } = req.body;
-
-    const book = books.find((each) => each.id === id);
-
-    if (!book) {
-        return res.status(404).json({
-            Success: false,
-            Message: "Book not found",
-        });
-    }
-
-    const updateData = books.map((each) => {
-        if (each.id === id) {
-            return { ...each, ...data };
-        }
-        return each;
-    });
-
-    return res.status(200).json({
-        Success: true,
-        Message: 'book updated successfully',
-        Data: updateData,
-    });
-});
+router.put("/:id", updateBookById);
 
 /**
  * Route: /books/issued/with-fine
@@ -116,54 +73,6 @@ router.put("/:id", (req, res) => {
  * Parameters: none
  */
 
-router.get("/issued/with-fine", (req, res) => {
-    const usersWithIssuedBooksWithFine = users.filter((each) => {
-        if (each.issuedBook) return each;
-    });
-
-    const issuedBooksWithFine = [];
-
-    usersWithIssuedBooksWithFine.forEach((each) => {
-        const book = books.find((book) => book.id === each.issuedBook);
-
-        book.issuedBy = each.name;
-        book.issuedDate = each.issuedDate;
-        book.returnDate = each.returnDate;
-
-
-        const getDateInDays = (data = "") => {
-            let date;
-            if (data === "") {
-                date = new Date();
-            } else {
-                date = new Date(data);
-            }
-            let days = Math.floor(date / (1000 * 60 * 60 * 24)); //1000 is for milliseconds
-            return days;
-        };
-
-        let returnDate = getDateInDays(each.returnDate);
-
-        let currentDate = getDateInDays();
-
-        if (returnDate < currentDate) {
-            issuedBooksWithFine.push(book);
-        }
-    });
-
-    if (issuedBooksWithFine.length === 0) {
-        return res.status(404).json({
-            Success: false,
-            Message: "No books which have fine",
-        });
-    }
-
-    return res.status(200).json({
-        Success: true,
-        Message: "Issued Books List which have fine",
-        Data: issuedBooksWithFine,
-    })
-});
-
+router.get("/issued/with-fine", getIssuedBookWithFine);
 
 module.exports = router;
